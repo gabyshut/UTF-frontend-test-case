@@ -1,16 +1,15 @@
-import { configureStore, createSlice } from '@reduxjs/toolkit'
+import { configureStore, createSlice, createSelector } from '@reduxjs/toolkit'
 
+/*
+  Убраны все вычисляемые поля из initialState
+  В store храним только источник истины
+*/
 const initialState = {
   products: [],
   cart: [],
   user: null,
   loading: false,
-  error: null,
-  cartCount: 0,
-  totalPrice: 0,
-  cartItemsCount: 0,
-  cartTotalAmount: 0,
-  cartTotalSum: 0
+  error: null
 }
 
 const appSlice = createSlice({
@@ -20,92 +19,82 @@ const appSlice = createSlice({
     setProducts: (state, action) => {
       state.products = action.payload
     },
-    
+
     addToCart: (state, action) => {
       const product = action.payload
       const existingItem = state.cart.find(item => item.id === product.id)
-      
+
       if (existingItem) {
         existingItem.quantity += 1
       } else {
         state.cart.push({ ...product, quantity: 1 })
       }
-      
-      state.cartCount = state.cart.reduce((total, item) => total + item.quantity, 0)
-      state.cartItemsCount = state.cart.length
-      state.totalPrice = state.cart.reduce((total, item) => total + (item.price * item.quantity), 0)
-      state.cartTotalAmount = state.cart.reduce((total, item) => total + (item.price * item.quantity), 0)
-      state.cartTotalSum = state.cart.reduce((total, item) => total + (item.price * item.quantity), 0)
     },
-    
+
     removeFromCart: (state, action) => {
       state.cart = state.cart.filter(item => item.id !== action.payload)
-      
-      state.cartCount = state.cart.reduce((total, item) => total + item.quantity, 0)
-      state.cartItemsCount = state.cart.length
-      state.totalPrice = state.cart.reduce((total, item) => total + (item.price * item.quantity), 0)
-      state.cartTotalAmount = state.cart.reduce((total, item) => total + (item.price * item.quantity), 0)
-      state.cartTotalSum = state.cart.reduce((total, item) => total + (item.price * item.quantity), 0)
     },
-    
+
     updateQuantity: (state, action) => {
       const { id, quantity } = action.payload
       const item = state.cart.find(item => item.id === id)
-      
+
       if (item) {
         item.quantity = quantity
       }
-      
-      state.cartCount = state.cart.reduce((total, item) => total + item.quantity, 0)
-      state.cartItemsCount = state.cart.length
-      state.totalPrice = state.cart.reduce((total, item) => total + (item.price * item.quantity), 0)
-      state.cartTotalAmount = state.cart.reduce((total, item) => total + (item.price * item.quantity), 0)
-      state.cartTotalSum = state.cart.reduce((total, item) => total + (item.price * item.quantity), 0)
     },
-    
+
+    clearCart: (state) => {
+      state.cart = []
+    },
+
     setUser: (state, action) => {
       state.user = action.payload
     },
-    
+
     setLoading: (state, action) => {
       state.loading = action.payload
     },
-    
+
     setError: (state, action) => {
       state.error = action.payload
-    },
-    
-    clearCart: (state) => {
-      state.cart = []
-      state.cartCount = 0
-      state.cartItemsCount = 0
-      state.totalPrice = 0
-      state.cartTotalAmount = 0
-      state.cartTotalSum = 0
     }
   }
 })
 
-export const selectProducts = (state) => state.app.products
-export const selectCart = (state) => state.app.cart
-export const selectCartCount = (state) => state.app.cartCount
-export const selectCartItemsCount = (state) => state.app.cartItemsCount
-export const selectTotalPrice = (state) => state.app.totalPrice
-export const selectCartTotalAmount = (state) => state.app.cartTotalAmount
-export const selectCartTotalSum = (state) => state.app.cartTotalSum
-export const selectUser = (state) => state.app.user
-export const selectLoading = (state) => state.app.loading
-export const selectError = (state) => state.app.error
+/* 
+   СЕЛЕКТОРЫ
+    */
 
-export const { 
-  setProducts, 
-  addToCart, 
-  removeFromCart, 
-  updateQuantity, 
-  setUser, 
-  setLoading, 
-  setError, 
-  clearCart 
+export const selectProducts = state => state.app.products
+export const selectCart = state => state.app.cart
+export const selectUser = state => state.app.user
+export const selectLoading = state => state.app.loading
+
+/*
+  Производные данные считаются через createSelector
+  Нет дублирования
+  Есть мемоизация
+*/
+export const selectCartCount = createSelector(
+  [selectCart],
+  cart => cart.reduce((sum, item) => sum + item.quantity, 0)
+)
+
+export const selectTotalPrice = createSelector(
+  [selectCart],
+  cart => cart.reduce((sum, item) => sum + item.price * item.quantity, 0)
+)
+
+export const {
+  setProducts,
+  addToCart,
+  removeFromCart,
+  updateQuantity,
+  clearCart,
+  setUser,
+  setLoading,
+  setError
 } = appSlice.actions
 
 export const store = configureStore({
@@ -113,4 +102,3 @@ export const store = configureStore({
     app: appSlice.reducer
   }
 })
-
